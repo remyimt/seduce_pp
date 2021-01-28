@@ -306,6 +306,7 @@ def analyze_port(switch_ports):
         else:
             if not 'bootcode.bin' in new_f:
                 os.remove(new_f)
+    #TODO iterate over new_nodes and delete line in dnsmasq.conf for nodes without 'id' prop
     return { 'nodes': new_nodes }
 
 

@@ -5,7 +5,7 @@
 mysql -e "show databases" | grep piseduce
 if [ $? -eq 1 ]; then
     # Variables
-    MY_IP=$(hostname -I)
+    MY_IP=$(hostname -I | sed 's/ //')
     DB_ROOT_PWD="rootDB"
     DB_USER_PWD="userDB"
     echo '# Configure the mysql server'
@@ -31,15 +31,19 @@ if [ $? -eq 1 ]; then
     echo '# Configure the PiSeduce resource manager'
     sed -i "s/DBPASSWORD/$DB_USER_PWD/" /root/seduce_pp/seducepp.conf
     sed -i "s/PIMASTERIP/$MY_IP/" /tftpboot/rpiboot_uboot/cmdline.txt
-    sed -i "s/PIMASTERIP/$MY_IP/" /root/seduce_pp/main.json
+    sed -i "s/PIMASTERIP/$MY_IP/" /etc/dnsmasq.conf
+    sed -i "s/PIMASTERIP/$MY_IP/" /root/seduce_pp/cluster_desc/main.json
     # Compute the first node IP
     # Get the last digit of the IP
     # To RTFC: https://tldp.org/LDP/abs/html/string-manipulation.html
     last=$(echo ${MY_IP##*\.})
     next=$(( ($last + 10) / 10 * 10 + 1 ))
-    first_ip="${MY_IP%$last*}$next"
-    sed -i "s/FIRSTNODEIP/$first_ip/" /root/seduce_pp/main.json
+    subnet=${MY_IP%$last*}
+    first_ip="$subnet$next"
+    sed -i "s/FIRSTNODEIP/$first_ip/" /root/seduce_pp/cluster_desc/main.json
+    echo "dhcp-range=${subnet}0,static,255.255.255.0" >> /etc/dnsmasq.conf
     # Start the pifrontend
+    /bin/systemctl restart dnsmasq
     /bin/systemctl restart pitasks
     /bin/systemctl restart pifrontend
 fi
